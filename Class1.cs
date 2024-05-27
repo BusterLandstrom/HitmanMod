@@ -13,8 +13,10 @@ public class HitmanMod : Script
 
     private int reward = 0;
 
+    private bool waitForInput;
+
     // Define the hitman contract pickup location
-    private Vector3 contractLocation = new Vector3(1704.875f, 3310.366f, 10.0f);
+    private Vector3 contractLocation = new Vector3(738.115f, -973.171f, 10.0f);
 
     // Define blip sprites
     private Blip hitmanBlip;
@@ -35,7 +37,7 @@ public class HitmanMod : Script
         hitmanBlip.Color = BlipColor.Red;
         hitmanBlip.Name = "Hitman Contract Pickup";
 
-        Notification.Show("Loaded successfully");
+        GTA.UI.Screen.ShowSubtitle($"Loaded HitmanMod successfully");
     }
 
     // Main tick function
@@ -45,7 +47,7 @@ public class HitmanMod : Script
         if (Game.Player.Character.Position.DistanceToSquared(contractLocation) < 50.0f * 50.0f)
         {
             // Display prompt to accept the contract
-            Notification.Show($"Press O to check for a new contract");
+            GTA.UI.Screen.ShowSubtitle($"Press O to check for a new contract");
 
             // Check if player pressed the pickup key
             if (Game.IsKeyPressed(Keys.O))
@@ -74,41 +76,52 @@ public class HitmanMod : Script
         Random rnd = new Random();
         int rewardMod = rnd.Next(-payRange, payRange);
 
-        // Pay the player
+        // Set reward pay
         reward = basePay + rewardMod;
 
         // Display notification on the phone
         string message = $"New Hitman Contract\nPay: ${reward}\nPress Y or N to accept contract";
-        Notification.Show(message);
+        GTA.UI.Screen.ShowSubtitle(message);
 
-        // Define the range for random X and Y coordinates
-        float range = 150.0f; // Half of the total range (300x300 area)
-        Random random = new Random();
-
-        // Calculate random X and Y offsets within the range
-        float offsetX = random.Next((int)-range, (int)range);
-        float offsetY = random.Next((int)-range, (int)range);
-
-        // Calculate the position for the generated target NPC
-        Vector3 targetPosition = contractLocation + new Vector3(offsetX, offsetY, 0);
-
-        // Ensure Z coordinate is at ground level
-        targetPosition.Z = World.GetGroundHeight(targetPosition);
-
-        // Create the target NPC at the calculated position
-        if (target != null && target.Exists()) // Cleanup previous target
+        while (!waitForInput) 
         {
-            target.Delete();
-            targetBlip.Delete();
-        }
-        target = World.CreatePed(PedHash.Abigail, targetPosition);
-        target.IsPersistent = true; // Make the target persistent
+            // If contract has been accepted
+            if (Game.IsKeyPressed(Keys.Y))
+            {
+                // Define the range for random X and Y coordinates
+                float range = 150.0f; // Half of the total range (300x300 area)
+                Random random = new Random();
 
-        // Create blip for the target
-        targetBlip = target.AddBlip();
-        targetBlip.Sprite = BlipSprite.Enemy;
-        targetBlip.Color = BlipColor.Red;
-        targetBlip.Name = "Target";
+                // Calculate random X and Y offsets within the range
+                float offsetX = random.Next((int)-range, (int)range);
+                float offsetY = random.Next((int)-range, (int)range);
+
+                // Calculate the position for the generated target NPC
+                Vector3 targetPosition = contractLocation + new Vector3(offsetX, offsetY, 0);
+
+                // Ensure Z coordinate is at ground level
+                targetPosition.Z = World.GetGroundHeight(targetPosition);
+
+                // Create the target NPC at the calculated position
+                if (target != null && target.Exists()) // Cleanup previous target
+                {
+                    target.Delete();
+                    targetBlip.Delete();
+                }
+                target = World.CreatePed(PedHash.Abigail, targetPosition);
+                target.IsPersistent = true; // Make the target persistent
+
+                // Create blip for the target
+                targetBlip = target.AddBlip();
+                targetBlip.Sprite = BlipSprite.Enemy;
+                targetBlip.Color = BlipColor.Red;
+                targetBlip.Name = "Target";
+
+                // Done waiting for input
+                waitForInput = true;
+
+            }
+        }
     }
 
     // Event handler for when the target is killed
